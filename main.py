@@ -4,10 +4,23 @@ import pika
 RABBITMQ_HOST = 'rabbitmq1'
 QUEUE_NAME = 'position_updates'
 
-connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
-channel = connection.channel()
+def connect_to_rabbitmq():
+    #Attempts to connect to RabbitMQ, retrying until successful.
+    credentials = pika.PlainCredentials('myuser', 'mypassword')
+    parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=credentials)
+    while True:
+        try:
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+            channel.queue_declare(queue=QUEUE_NAME)
+            print("Connected to RabbitMQ")
+            return connection, channel
+        except pika.exceptions.AMQPConnectionError:
+            print("RabbitMQ not available, retrying in 5 seconds...")
+            time.sleep(5)
 
-channel.queue_declare(queue=QUEUE_NAME)
+# Attempt to connect to RabbitMQ
+connection, channel = connect_to_rabbitmq()
 
 def callback(ch, method, properties, body):
     print(f"Received: {body}")
