@@ -1,4 +1,5 @@
 import pika
+import time
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
