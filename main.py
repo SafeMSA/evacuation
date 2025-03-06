@@ -13,10 +13,10 @@ def connect_to_rabbitmq():
         try:
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
-            channel.queue_declare(queue=QUEUE_NAME)
+            channel.queue_declare(QUEUE_NAME, passive=True)
             print("Connected to RabbitMQ")
             return connection, channel
-        except pika.exceptions.AMQPConnectionError:
+        except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
             print("RabbitMQ not available, retrying in 5 seconds...")
             time.sleep(5)
 
