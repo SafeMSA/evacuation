@@ -31,17 +31,33 @@ def start_server(host='0.0.0.0', port=9092):
         while True:
             client_socket, client_address = server_socket.accept()
             with client_socket:
+                start_time = datetime.utcnow().isoformat()
                 print(f"Connection from {client_address}")
                 request = client_socket.recv(1024).decode('utf-8')
                 print(f"Received request:\n{request}")
-                
-                response = "HTTP/1.1 200 OK\r\n" \
-                           "Content-Type: text/plain\r\n" \
-                           "Content-Length: 13\r\n" \
-                           "Name: {os.environ['HOSTNAME']}\r\n" \
-                           "\r\n" \
-                           "Hello, World!"
+
+                # Build JSON response
+                response_data = {
+                    "name": SERVICE_NAME,
+                    "uri": "/",
+                    "type": "HTTP",
+                    "ip_addresses": [client_address[0]],
+                    "start_time": start_time,
+                    "body": "Hello World",
+                    "code": 200
+                }
+                response_json = json.dumps(response_data, indent=2)
+
+                response = (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: application/json\r\n"
+                    f"Content-Length: {len(response_json)}\r\n"
+                    "\r\n"
+                    f"{response_json}"
+                )
+
                 client_socket.sendall(response.encode('utf-8'))
+
 
 start_server()
 
