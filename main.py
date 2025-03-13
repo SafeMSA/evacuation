@@ -7,6 +7,7 @@ import datetime
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
 QUEUE_NAME = 'position_updates'
+SERVICE_NAME = os.environ("HOSTNAME")
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -32,7 +33,6 @@ def start_server(host='0.0.0.0', port=9092):
         while True:
             client_socket, client_address = server_socket.accept()
             with client_socket:
-                start_time = datetime.utcnow().isoformat()
                 print(f"Connection from {client_address}")
                 request = client_socket.recv(1024).decode('utf-8')
                 print(f"Received request:\n{request}")
@@ -40,10 +40,6 @@ def start_server(host='0.0.0.0', port=9092):
                 # Build JSON response
                 response_data = {
                     "name": SERVICE_NAME,
-                    "uri": "/",
-                    "type": "HTTP",
-                    "ip_addresses": [client_address[0]],
-                    "start_time": start_time,
                     "body": "Hello World",
                     "code": 200
                 }
