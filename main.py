@@ -7,7 +7,7 @@ import os
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
 QUEUE_NAME = 'position_updates'
-NAME = os.environ.get('SERVICE_ID')
+NAME = os.environ.get('NAME')
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
