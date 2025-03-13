@@ -2,10 +2,12 @@ import pika
 import socket
 import time
 import json
+import os
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
 QUEUE_NAME = 'position_updates'
+NAME = os.environ['SERVICE_ID']
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -37,7 +39,7 @@ def start_server(host='0.0.0.0', port=9092):
 
                 # Build JSON response
                 response_data = {
-                    "name": socket.gethostname(),
+                    "name": NAME,
                     "body": "Hello World",
                     "code": 200
                 }
