@@ -1,8 +1,7 @@
 import pika
 import socket
 import time
-import os
-import datetime
+import json
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
