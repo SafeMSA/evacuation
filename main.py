@@ -1,6 +1,7 @@
 import pika
 import socket
 import time
+import os
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
@@ -37,6 +38,7 @@ def start_server(host='0.0.0.0', port=9092):
                 response = "HTTP/1.1 200 OK\r\n" \
                            "Content-Type: text/plain\r\n" \
                            "Content-Length: 13\r\n" \
+                           "Name: {os.environ['HOSTNAME']}\r\n" \
                            "\r\n" \
                            "Hello, World!"
                 client_socket.sendall(response.encode('utf-8'))
