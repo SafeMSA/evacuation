@@ -7,7 +7,6 @@ import datetime
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'rabbitmq1'
 QUEUE_NAME = 'position_updates'
-SERVICE_NAME = os.environ("HOSTNAME")
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -39,7 +38,7 @@ def start_server(host='0.0.0.0', port=9092):
 
                 # Build JSON response
                 response_data = {
-                    "name": SERVICE_NAME,
+                    "name": socket.gethostname(),
                     "body": "Hello World",
                     "code": 200
                 }
