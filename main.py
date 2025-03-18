@@ -39,10 +39,6 @@ def start_server(host='0.0.0.0', port=9092):
 
                 # Try to parse the incoming request as JSON
                 if (len(request) > 10):
-                    request_json = json.loads(request)
-                    message = request_json.get("message")  # Default if "body" is missing
-                    id = request_json.get("id")  # Check if it's a health check
-                    
                     # Build JSON response
                     response_data = {
                         "name": NAME,
