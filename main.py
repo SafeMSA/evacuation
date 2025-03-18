@@ -38,11 +38,7 @@ def start_server(host='0.0.0.0', port=9092):
                 print(f"Received request:\n{request}")
 
                 # Try to parse the incoming request as JSON
-                try:
-                    request_json = json.loads(request)
-                    body_content = request_json.get("body", "No body found")  # Default if "body" is missing
-                    status_code = request_json.get("code")  # Check if it's a health check
-                    
+                if (len(request) > 10):
                     # Build JSON response
                     response_data = {
                         "name": NAME,
@@ -63,11 +59,6 @@ def start_server(host='0.0.0.0', port=9092):
                     print("Sending out WARNING")
                     channel.basic_publish(exchange='notifications', routing_key='', body="WARNING",
                         properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
-                
-                except json.JSONDecodeError:
-                    print("Received invalid JSON, ignoring...")
-
-                
 
 # Attempt to connect to RabbitMQ
 connection, channel = connect_to_rabbitmq()
