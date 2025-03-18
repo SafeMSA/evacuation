@@ -37,27 +37,38 @@ def start_server(host='0.0.0.0', port=9092):
                 request = client_socket.recv(1024).decode('utf-8')
                 print(f"Received request:\n{request}")
 
-                # Build JSON response
-                response_data = {
-                    "name": NAME,
-                    "body": "Hello World",
-                    "code": 200
-                }
-                response_json = json.dumps(response_data, indent=2)
+                # Try to parse the incoming request as JSON
+                try:
+                    request_json = json.loads(request)
+                    body_content = request_json.get("body", "No body found")  # Default if "body" is missing
+                    status_code = request_json.get("code")  # Check if it's a health check
+                    
+                    # Build JSON response
+                    response_data = {
+                        "name": NAME,
+                        "code": 200
+                    }
+                    response_json = json.dumps(response_data, indent=2)
 
-                response = (
-                    "HTTP/1.1 200 OK\r\n"
-                    "Content-Type: application/json\r\n"
-                    f"Content-Length: {len(response_json)}\r\n"
-                    "\r\n"
-                    f"{response_json}"
-                )
+                    response = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: application/json\r\n"
+                        f"Content-Length: {len(response_json)}\r\n"
+                        "\r\n"
+                        f"{response_json}"
+                    )
 
-                client_socket.sendall(response.encode('utf-8'))
-                # Publish the message
-                print("Sending out WARNING")
-                channel.basic_publish(exchange='notifications', routing_key='', body="WARNING",
-                      properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+                    client_socket.sendall(response.encode('utf-8'))
+                    # Publish the message
+                    print("Sending out WARNING")
+                    channel.basic_publish(exchange='notifications', routing_key='', body="WARNING",
+                        properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+                
+                except json.JSONDecodeError:
+                    print("Received invalid JSON, ignoring...")
+                    return  # Ignore invalid JSON messages
+
+                
 
 # Attempt to connect to RabbitMQ
 connection, channel = connect_to_rabbitmq()
