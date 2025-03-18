@@ -38,7 +38,7 @@ def start_server(host='0.0.0.0', port=9092):
                 print(f"Received request:\n{request}")
 
                 # Try to parse the incoming request as JSON
-                try:
+                if (len(request) > 10):
                     request_json = json.loads(request)
                     message = request_json.get("message")  # Default if "body" is missing
                     id = request_json.get("id")  # Check if it's a health check
@@ -63,9 +63,6 @@ def start_server(host='0.0.0.0', port=9092):
                     print("Sending out message")
                     channel.basic_publish(exchange='notifications', routing_key='', body=request,
                         properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
-                
-                except json.JSONDecodeError:
-                    print("Received invalid JSON, ignoring...")
 
                 
 
