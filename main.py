@@ -17,7 +17,7 @@ def connect_to_rabbitmq():
         try:
             connection = pika.BlockingConnection(parameters)
             channel = connection.channel()
-            channel.queue_declare(QUEUE_NAME, passive=True)
+            channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
             print("Connected to RabbitMQ")
             return connection, channel
         except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
@@ -54,9 +54,17 @@ def start_server(host='0.0.0.0', port=9092):
                 )
 
                 client_socket.sendall(response.encode('utf-8'))
+                # Publish the message
+                print("Sending out WARNING")
+                channel.basic_publish(exchange='notifications', routing_key='', body="WARNING",
+                      properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
 
+# Attempt to connect to RabbitMQ
+connection, channel = connect_to_rabbitmq()
 
+# Start listening for HTTP Requests
 start_server()
+connection.close()
 
 # Attempt to connect to RabbitMQ
 #connection, channel = connect_to_rabbitmq()
