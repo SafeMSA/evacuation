@@ -66,7 +66,6 @@ def start_server(host='0.0.0.0', port=9092):
                 
                 except json.JSONDecodeError:
                     print("Received invalid JSON, ignoring...")
-                    return  # Ignore invalid JSON messages
 
                 
 
