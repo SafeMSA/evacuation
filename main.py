@@ -77,8 +77,8 @@ while True:
         start_server()
         connection.close()
 
-    except:
-        print("Rabbitmq connection lost, retrying...")
+    except Exception as e:
+        print(e)
 
 # Attempt to connect to RabbitMQ
 #connection, channel = connect_to_rabbitmq()
