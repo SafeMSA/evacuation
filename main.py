@@ -53,10 +53,16 @@ def start_server(host='0.0.0.0', port=9092):
                         f"{response_json}"
                     )
 
+                    # Extract JSON body from HTTP request
+                    headers, body = request.split("\r\n\r\n", 1)
+
+                    # Validate JSON
+                    json_data = json.loads(body)
+
                     client_socket.sendall(response.encode('utf-8'))
                     # Publish the message
                     print("Sending out message")
-                    channel.basic_publish(exchange='notifications', routing_key='', body=request,
+                    channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
                         properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
 
                 
