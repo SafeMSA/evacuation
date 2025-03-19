@@ -35,7 +35,6 @@ def start_server(host='0.0.0.0', port=9092):
             with client_socket:
                 print(f"Connection from {client_address}")
                 request = client_socket.recv(1024).decode('utf-8')
-                print(f"Received request:\n{request}")
 
                 # Try to parse the incoming request as JSON
                 if (len(request) > 10):
