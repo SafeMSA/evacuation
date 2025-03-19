@@ -12,10 +12,11 @@ NAME = os.environ.get('NAME')
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
     credentials = pika.PlainCredentials('myuser', 'mypassword')
-    parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=credentials)
+    
     while True:
         for host in RABBITMQ_HOST:
             try:
+                parameters = pika.ConnectionParameters(host=host, credentials=credentials)
                 connection = pika.BlockingConnection(parameters)
                 channel = connection.channel()
                 channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
@@ -77,7 +78,7 @@ while True:
         connection.close()
 
     except:
-        print("Rabbitmq connection closed, retrying...")
+        print("Rabbitmq connection lost, retrying...")
 
 # Attempt to connect to RabbitMQ
 #connection, channel = connect_to_rabbitmq()
