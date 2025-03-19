@@ -5,7 +5,7 @@ import json
 import os
 
 # RabbitMQ connection parameters
-RABBITMQ_HOST = 'rabbitmq1'
+RABBITMQ_HOST = ['rabbitmq1', 'rabbitmq2', 'rabbitmq3']
 QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
 
@@ -14,15 +14,16 @@ def connect_to_rabbitmq():
     credentials = pika.PlainCredentials('myuser', 'mypassword')
     parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=credentials)
     while True:
-        try:
-            connection = pika.BlockingConnection(parameters)
-            channel = connection.channel()
-            channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
-            print("Connected to RabbitMQ")
-            return connection, channel
-        except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
-            print("RabbitMQ not available, retrying in 5 seconds...")
-            time.sleep(5)
+        for host in RABBITMQ_HOST:
+            try:
+                connection = pika.BlockingConnection(parameters)
+                channel = connection.channel()
+                channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
+                print("Connected to RabbitMQ")
+                return connection, channel
+            except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
+                print("RabbitMQ not available, retrying in 1 seconds...")
+                time.sleep(1)
 
 def start_server(host='0.0.0.0', port=9092):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
@@ -66,13 +67,17 @@ def start_server(host='0.0.0.0', port=9092):
                         properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
 
                 
+while True:
+    try:
+        # Attempt to connect to RabbitMQ
+        connection, channel = connect_to_rabbitmq()
 
-# Attempt to connect to RabbitMQ
-connection, channel = connect_to_rabbitmq()
+        # Start listening for HTTP Requests
+        start_server()
+        connection.close()
 
-# Start listening for HTTP Requests
-start_server()
-connection.close()
+    except:
+        print("Rabbitmq connection closed, retrying...")
 
 # Attempt to connect to RabbitMQ
 #connection, channel = connect_to_rabbitmq()
