@@ -29,8 +29,8 @@ def connect_to_rabbitmq():
             print("Connected to RabbitMQ")
             return connection, channel
         except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
-            print("RabbitMQ not available, retrying in 1 seconds...")
-            time.sleep(1)
+            print("RabbitMQ not available, retrying in 5 seconds...")
+            time.sleep(5)
 
 def start_server(host='0.0.0.0', port=9092):
     
