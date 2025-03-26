@@ -5,7 +5,8 @@ import json
 import os
 
 # RabbitMQ connection parameters
-RABBITMQ_HOST = ['rabbitmq1', 'rabbitmq2', 'rabbitmq3']
+RABBITMQ_HOST = ['localhost']  # Connect via Envoy sidecar
+RABBITMQ_PORT = 9093           # Envoy upstream port
 QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
 
@@ -14,17 +15,22 @@ def connect_to_rabbitmq():
     credentials = pika.PlainCredentials('myuser', 'mypassword')
     
     while True:
-        for host in RABBITMQ_HOST:
-            try:
-                parameters = pika.ConnectionParameters(host=host, credentials=credentials, blocked_connection_timeout=1)
-                connection = pika.BlockingConnection(parameters)
-                channel = connection.channel()
-                channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
-                print("Connected to RabbitMQ")
-                return connection, channel
-            except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
-                print("RabbitMQ not available, retrying in 1 seconds...")
-                time.sleep(1)
+        
+        try:
+            parameters = pika.ConnectionParameters(
+                host=RABBITMQ_HOST, 
+                port=RABBITMQ_PORT,
+                credentials=credentials, 
+                blocked_connection_timeout=1
+            )
+            connection = pika.BlockingConnection(parameters)
+            channel = connection.channel()
+            channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
+            print("Connected to RabbitMQ")
+            return connection, channel
+        except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
+            print("RabbitMQ not available, retrying in 1 seconds...")
+            time.sleep(1)
 
 def start_server(host='0.0.0.0', port=9092):
     
