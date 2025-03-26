@@ -5,7 +5,7 @@ import json
 import os
 
 # RabbitMQ connection parameters
-RABBITMQ_HOST = ['localhost']  # Connect via Envoy sidecar
+RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
 RABBITMQ_PORT = 9093           # Envoy upstream port
 QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
