@@ -3,12 +3,17 @@ import socket
 import time
 import json
 import os
+import random
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
 RABBITMQ_PORT = 9093           # Envoy upstream port
 QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
+FAILURE_RATE = float(os.environ.get('FAILURE_RATE', '0'))
+DELAY_TIME = float(os.environ.get('DELAY_TIME', '0'))
+RESTART_TIME = 120
+
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -48,33 +53,48 @@ def start_server(host='0.0.0.0', port=9092):
                     print(request)
 
                     # Try to parse the incoming request as JSON
-                    if (len(request) > 10):
-                        # Build JSON response
-                        response_data = {
-                            "name": NAME,
-                            "code": 200
-                        }
-                        response_json = json.dumps(response_data, indent=2)
-
+                    if (len(request) < 10):
+                        return
+                        
+                    # FAILURE
+                    if (random.random() < FAILURE_RATE):
+                        print("FAILED TO HANDLE REQUEST")
                         response = (
-                            "HTTP/1.1 200 OK\r\n"
-                            "Content-Type: application/json\r\n"
-                            f"Content-Length: {len(response_json)}\r\n"
-                            "\r\n"
-                            f"{response_json}"
-                        )
-
-                        # Extract JSON body from HTTP request
-                        headers, body = request.split("\r\n\r\n", 1)
-
-                        # Validate JSON
-                        json_data = json.loads(body)
+                                "HTTP/1.1 500 Internal Server Error\r\n"
+                                "Content-Type: application/json\r\n"
+                                f"Content-Length: {len(response_json)}\r\n"
+                                "\r\n"
+                            )
 
                         client_socket.sendall(response.encode('utf-8'))
-                        # Publish the message
-                        print("Sending out message")
-                        channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
-                            properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+                        continue
+
+                    # SUCCESS
+                    response_data = {
+                        "name": NAME,
+                        "code": 200
+                    }
+                    response_json = json.dumps(response_data, indent=2)
+
+                    response = (
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: application/json\r\n"
+                        f"Content-Length: {len(response_json)}\r\n"
+                        "\r\n"
+                        f"{response_json}"
+                    )
+
+                    # Extract JSON body from HTTP request
+                    headers, body = request.split("\r\n\r\n", 1)
+
+                    # Validate JSON
+                    json_data = json.loads(body)
+
+                    client_socket.sendall(response.encode('utf-8'))
+                    # Publish the message
+                    print("Sending out message")
+                    channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
+                        properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
             except Exception as e:
                 print(e)
                 break
