@@ -3,6 +3,7 @@ import socket
 import time
 import json
 import os
+import sys
 import random
 
 # RabbitMQ connection parameters
@@ -10,9 +11,11 @@ RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
 RABBITMQ_PORT = 9093           # Envoy upstream port
 QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
-FAILURE_RATE = float(os.environ.get('FAILURE_RATE', '0'))
+DEGRADATION_RATE = float(os.environ.get('DEGRADATION_RATE', '0'))
 DELAY_TIME = float(os.environ.get('DELAY_TIME', '0'))
+CRASH_RATE = float(os.environ.get('CRASH_RATE', '0'))
 RESTART_TIME = 120
+DEGRADATION_TIME = 10
 
 
 def connect_to_rabbitmq():
@@ -41,7 +44,7 @@ def start_server(host='0.0.0.0', port=9092):
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((host, port))
-        server_socket.listen(5)
+        server_socket.listen(100)
         print(f"Listening on {host}:{port}...")
         
         while True:
@@ -52,27 +55,23 @@ def start_server(host='0.0.0.0', port=9092):
                     request = client_socket.recv(1024).decode('utf-8')
                     print(request)
 
-                    # Try to parse the incoming request as JSON
+                    # Filter out health checks
                     if (len(request) < 10):
                         continue
-                        
-                    # FAILURE
-                    if (random.random() < FAILURE_RATE):
-                        print("FAILED TO HANDLE REQUEST")
-                        response = (
-                                "HTTP/1.1 500 Internal Server Error\r\n"
-                                "Content-Type: application/json\r\n"
-                                f"Content-Length: {len(response_json)}\r\n"
-                                "\r\n"
-                            )
 
-                        client_socket.sendall(response.encode('utf-8'))
-                        continue
+                    # CRASH
+                    if (random.random() < CRASH_RATE):
+                        time.sleep(RESTART_TIME)
+                        os.execv(sys.executable, ['python'] + sys.argv)
+                        
+                    # DEGRADATION
+                    if (random.random() < DEGRADATION_RATE):
+                        time.sleep(DEGRADATION_TIME)
 
                     # SUCCESS
                     response_data = {
-                        "name": NAME,
-                        "code": 200
+                        "id": json.loads(request).get('id'),
+                        "name": NAME
                     }
                     response_json = json.dumps(response_data, indent=2)
 
