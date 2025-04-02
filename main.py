@@ -68,8 +68,14 @@ def start_server(host='0.0.0.0', port=9092):
                         time.sleep(DEGRADATION_TIME)
 
                     # SUCCESS
+                    # Extract JSON body from HTTP request
+                    headers, body = request.split("\r\n\r\n", 1)
+
+                    # Validate JSON
+                    json_data = json.loads(body)
+
                     response_data = {
-                        "id": json.loads(request).get('id'),
+                        "id": json_data.get('id'),
                         "name": NAME
                     }
                     response_json = json.dumps(response_data, indent=2)
@@ -81,12 +87,6 @@ def start_server(host='0.0.0.0', port=9092):
                         "\r\n"
                         f"{response_json}"
                     )
-
-                    # Extract JSON body from HTTP request
-                    headers, body = request.split("\r\n\r\n", 1)
-
-                    # Validate JSON
-                    json_data = json.loads(body)
 
                     client_socket.sendall(response.encode('utf-8'))
                     # Publish the message
