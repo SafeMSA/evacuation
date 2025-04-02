@@ -12,7 +12,6 @@ RABBITMQ_PORT = 9093           # Envoy upstream port
 QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
 DEGRADATION_RATE = float(os.environ.get('DEGRADATION_RATE', '0'))
-DELAY_TIME = float(os.environ.get('DELAY_TIME', '0'))
 CRASH_RATE = float(os.environ.get('CRASH_RATE', '0'))
 RESTART_TIME = 120
 DEGRADATION_TIME = 10
