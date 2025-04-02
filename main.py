@@ -54,7 +54,7 @@ def start_server(host='0.0.0.0', port=9092):
 
                     # Try to parse the incoming request as JSON
                     if (len(request) < 10):
-                        return
+                        continue
                         
                     # FAILURE
                     if (random.random() < FAILURE_RATE):
