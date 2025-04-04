@@ -109,15 +109,3 @@ while True:
 
     except Exception as e:
         print(e)
-
-# Attempt to connect to RabbitMQ
-#connection, channel = connect_to_rabbitmq()
-
-#def callback(ch, method, properties, body):
-#    print(f"Received: {body}")
-
-#channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback, auto_ack=True)
-
-#print('Waiting for messages...')
-#channel.start_consuming()
-#print('Closing...')
