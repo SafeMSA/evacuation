@@ -14,7 +14,7 @@ QUEUE_NAME = 'position_updates'
 NAME = os.environ.get('NAME')
 DEGRADATION_RATE = float(os.environ.get('DEGRADATION_RATE', '0'))
 CRASH_RATE = float(os.environ.get('CRASH_RATE', '0'))
-RESTART_TIME = 120
+RESTART_TIME = 10
 DEGRADATION_TIME = 10
 
 
@@ -62,7 +62,7 @@ def start_server(host='0.0.0.0', port=9092):
                     # CRASH
                     if (random.random() < CRASH_RATE):
                         try:
-                            subprocess.run(["docker", "restart", NAME, f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
+                            exit(1)
                         except subprocess.CalledProcessError as e:
                             print(f"Failed to restart containers: {e}")
                         
@@ -100,8 +100,12 @@ def start_server(host='0.0.0.0', port=9092):
                 print(e)
                 break
 
+print("Starting...")
+subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
+time.sleep(RESTART_TIME)
                 
 while True:
+    
     try:
         # Attempt to connect to RabbitMQ
         connection, channel = connect_to_rabbitmq()
