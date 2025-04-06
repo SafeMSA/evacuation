@@ -15,7 +15,7 @@ NAME = os.environ.get('NAME')
 DEGRADATION_RATE = float(os.environ.get('DEGRADATION_RATE', '0'))
 CRASH_RATE = float(os.environ.get('CRASH_RATE', '0'))
 RESTART_TIME = 10
-DEGRADATION_TIME = 10
+DEGRADATION_TIME = 60
 
 
 def connect_to_rabbitmq():
@@ -62,13 +62,16 @@ def start_server(host='0.0.0.0', port=9092):
                     # CRASH
                     if (random.random() < CRASH_RATE):
                         try:
+                            print("DEBUG: Chrashing...")
                             exit(1)
                         except subprocess.CalledProcessError as e:
                             print(f"Failed to restart containers: {e}")
                         
                     # DEGRADATION
                     if (random.random() < DEGRADATION_RATE):
+                        print("DEBUG: Entering degraded state...")
                         time.sleep(DEGRADATION_TIME)
+                        print("DEBUG: Exiting degraded state...")
 
                     # SUCCESS
                     # Extract JSON body from HTTP request
