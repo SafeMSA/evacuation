@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import random
+import subprocess
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
@@ -60,7 +61,10 @@ def start_server(host='0.0.0.0', port=9092):
 
                     # CRASH
                     if (random.random() < CRASH_RATE):
-                        exit(1)
+                        try:
+                            subprocess.run(["docker", "restart", NAME, f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
+                        except subprocess.CalledProcessError as e:
+                            print(f"Failed to restart containers: {e}")
                         
                     # DEGRADATION
                     if (random.random() < DEGRADATION_RATE):
