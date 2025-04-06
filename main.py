@@ -60,8 +60,7 @@ def start_server(host='0.0.0.0', port=9092):
 
                     # CRASH
                     if (random.random() < CRASH_RATE):
-                        time.sleep(RESTART_TIME)
-                        os.execv(sys.executable, ['python'] + sys.argv)
+                        exit(1)
                         
                     # DEGRADATION
                     if (random.random() < DEGRADATION_RATE):
