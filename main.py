@@ -42,11 +42,10 @@ def connect_to_rabbitmq():
             print("RabbitMQ not available, retrying in 5 seconds...")
             time.sleep(5)
 
-def handle_post(client_socket):
+def handle_post(client_socket, request):
     try:
         with client_socket:
-            request = client_socket.recv(1024).decode('utf-8')
-            
+
             # Extract JSON body from HTTP request
             headers, body = request.split("\r\n\r\n", 1)
 
@@ -118,7 +117,7 @@ def start_server(host='0.0.0.0', port=9092):
                 if method == "GET":
                     executor.submit(handle_get, client_socket)
                 else:
-                    executor.submit(handle_post, client_socket)
+                    executor.submit(handle_post, client_socket, request)
 
                     
             
