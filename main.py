@@ -44,7 +44,6 @@ def connect_to_rabbitmq():
 
 def handle_request(client_socket):
     try:
-        client_socket, client_address = server_socket.accept()
         with client_socket:
             request = client_socket.recv(1024).decode('utf-8')
 
