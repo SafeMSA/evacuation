@@ -52,9 +52,7 @@ def start_server(host='0.0.0.0', port=9092):
             try:
                 client_socket, client_address = server_socket.accept()
                 with client_socket:
-                    print(f"Connection from {client_address}")
                     request = client_socket.recv(1024).decode('utf-8')
-                    print(request)
 
                     if not request:
                         continue
@@ -103,7 +101,7 @@ def start_server(host='0.0.0.0', port=9092):
 
                     client_socket.sendall(response.encode('utf-8'))
                     # Publish the message
-                    print("Sending out message")
+                    print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
                     channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
                         properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
             except Exception as e:
