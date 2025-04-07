@@ -6,6 +6,7 @@ import os
 import sys
 import random
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
@@ -41,72 +42,77 @@ def connect_to_rabbitmq():
             print("RabbitMQ not available, retrying in 5 seconds...")
             time.sleep(5)
 
+def handle_request(client_socket):
+    try:
+        client_socket, client_address = server_socket.accept()
+        with client_socket:
+            request = client_socket.recv(1024).decode('utf-8')
+
+            if not request:
+                return
+
+            method = request.splitlines()[0].split()[0]
+            if method == "GET":
+                print(f"DEBUG: Handling GET request for {GET_TIME} seconds...")
+                time.sleep(GET_TIME)
+                client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
+                return
+
+            # CRASH
+            if (random.random() < CRASH_RATE):
+                try:
+                    print("DEBUG: Chrashing...")
+                    exit(1)
+                except subprocess.CalledProcessError as e:
+                    print(f"Failed to restart containers: {e}")
+                
+            # DEGRADATION
+            if (random.random() < DEGRADATION_RATE):
+                print("DEBUG: Entering degraded state...")
+                time.sleep(DEGRADATION_TIME)
+                print("DEBUG: Exiting degraded state...")
+
+            # SUCCESS
+            # Extract JSON body from HTTP request
+            headers, body = request.split("\r\n\r\n", 1)
+
+            # Validate JSON
+            json_data = json.loads(body)
+
+            response_data = {
+                "id": json_data.get('id'),
+                "name": NAME
+            }
+            response_json = json.dumps(response_data, indent=2)
+
+            response = (
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: application/json\r\n"
+                f"Content-Length: {len(response_json)}\r\n"
+                "\r\n"
+                f"{response_json}"
+            )
+
+            client_socket.sendall(response.encode('utf-8'))
+            # Publish the message
+            print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
+            channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
+                properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+    except Exception as e:
+        print(e)
+
+
 def start_server(host='0.0.0.0', port=9092):
     
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-        server_socket.bind((host, port))
-        server_socket.listen(10)
-        print(f"Listening on {host}:{port}...")
-        
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, port))
+    server_socket.listen(10)
+    print(f"Listening on {host}:{port}...")
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
         while True:
-            try:
-                client_socket, client_address = server_socket.accept()
-                with client_socket:
-                    request = client_socket.recv(1024).decode('utf-8')
-
-                    if not request:
-                        continue
-
-                    method = request.splitlines()[0].split()[0]
-                    if method == "GET":
-                        print(f"DEBUG: Handling GET request for {GET_TIME} seconds...")
-                        time.sleep(GET_TIME)
-                        client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
-                        continue
-
-                    # CRASH
-                    if (random.random() < CRASH_RATE):
-                        try:
-                            print("DEBUG: Chrashing...")
-                            exit(1)
-                        except subprocess.CalledProcessError as e:
-                            print(f"Failed to restart containers: {e}")
-                        
-                    # DEGRADATION
-                    if (random.random() < DEGRADATION_RATE):
-                        print("DEBUG: Entering degraded state...")
-                        time.sleep(DEGRADATION_TIME)
-                        print("DEBUG: Exiting degraded state...")
-
-                    # SUCCESS
-                    # Extract JSON body from HTTP request
-                    headers, body = request.split("\r\n\r\n", 1)
-
-                    # Validate JSON
-                    json_data = json.loads(body)
-
-                    response_data = {
-                        "id": json_data.get('id'),
-                        "name": NAME
-                    }
-                    response_json = json.dumps(response_data, indent=2)
-
-                    response = (
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: application/json\r\n"
-                        f"Content-Length: {len(response_json)}\r\n"
-                        "\r\n"
-                        f"{response_json}"
-                    )
-
-                    client_socket.sendall(response.encode('utf-8'))
-                    # Publish the message
-                    print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
-                    channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
-                        properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
-            except Exception as e:
-                print(e)
-                break
+            client_socket, client_address = server_socket.accept()
+            executor.submit(handle_request, client_socket)
 
 print("Starting...")
 subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
