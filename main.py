@@ -16,6 +16,7 @@ DEGRADATION_RATE = float(os.environ.get('DEGRADATION_RATE', '0'))
 CRASH_RATE = float(os.environ.get('CRASH_RATE', '0'))
 RESTART_TIME = 10
 DEGRADATION_TIME = 60
+GET_TIME = 2
 
 
 def connect_to_rabbitmq():
@@ -44,7 +45,7 @@ def start_server(host='0.0.0.0', port=9092):
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
         server_socket.bind((host, port))
-        server_socket.listen(100)
+        server_socket.listen(10)
         print(f"Listening on {host}:{port}...")
         
         while True:
@@ -55,8 +56,14 @@ def start_server(host='0.0.0.0', port=9092):
                     request = client_socket.recv(1024).decode('utf-8')
                     print(request)
 
-                    # Filter out health checks
-                    if (len(request) < 10):
+                    if not request:
+                        continue
+
+                    method = request.splitlines()[0].split()[0]
+                    if method == "GET":
+                        print(f"DEBUG: Handling GET request for {GET_TIME} seconds...")
+                        time.sleep(GET_TIME)
+                        client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
                         continue
 
                     # CRASH
