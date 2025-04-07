@@ -42,36 +42,11 @@ def connect_to_rabbitmq():
             print("RabbitMQ not available, retrying in 5 seconds...")
             time.sleep(5)
 
-def handle_request(client_socket):
+def handle_post(client_socket):
     try:
         with client_socket:
             request = client_socket.recv(1024).decode('utf-8')
-
-            if not request:
-                return
-
-            method = request.splitlines()[0].split()[0]
-            if method == "GET":
-                print(f"DEBUG: Handling GET request for {GET_TIME} seconds...")
-                time.sleep(GET_TIME)
-                client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
-                return
-
-            # CRASH
-            if (random.random() < CRASH_RATE):
-                try:
-                    print("DEBUG: Chrashing...")
-                    exit(1)
-                except subprocess.CalledProcessError as e:
-                    print(f"Failed to restart containers: {e}")
-                
-            # DEGRADATION
-            if (random.random() < DEGRADATION_RATE):
-                print("DEBUG: Entering degraded state...")
-                time.sleep(DEGRADATION_TIME)
-                print("DEBUG: Exiting degraded state...")
-
-            # SUCCESS
+            
             # Extract JSON body from HTTP request
             headers, body = request.split("\r\n\r\n", 1)
 
@@ -100,6 +75,13 @@ def handle_request(client_socket):
     except Exception as e:
         print(e)
 
+def handle_get(client_socket):
+    with client_socket:
+        print(f"DEBUG: Handling GET request for {GET_TIME} seconds...")
+        time.sleep(GET_TIME)
+        client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
+        return
+
 
 def start_server(host='0.0.0.0', port=9092):
     
@@ -111,7 +93,35 @@ def start_server(host='0.0.0.0', port=9092):
     with ThreadPoolExecutor(max_workers=10) as executor:
         while True:
             client_socket, client_address = server_socket.accept()
-            executor.submit(handle_request, client_socket)
+            
+            with client_socket:
+                request = client_socket.recv(1024).decode('utf-8')
+
+                if not request: # Hearth beat
+                    continue
+
+                # CRASH
+                if (random.random() < CRASH_RATE):
+                    try:
+                        print("DEBUG: Chrashing...")
+                        exit(1)
+                    except subprocess.CalledProcessError as e:
+                        print(f"Failed to restart containers: {e}")
+                    
+                # DEGRADATION
+                if (random.random() < DEGRADATION_RATE):
+                    print("DEBUG: Entering degraded state...")
+                    time.sleep(DEGRADATION_TIME)
+                    print("DEBUG: Exiting degraded state...")
+
+                method = request.splitlines()[0].split()[0]
+                if method == "GET":
+                    executor.submit(handle_get, client_socket)
+                else:
+                    executor.submit(handle_post, client_socket)
+
+                    
+            
 
 print("Starting...")
 subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
