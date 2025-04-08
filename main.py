@@ -8,6 +8,7 @@ import random
 from random import randrange
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
@@ -21,6 +22,7 @@ GET_TIME = 2
 DEGRADED_STATE = False
 DEGRADED_START_TIME = None
 DEGRADED_DURATION = None
+COLLECTOR_QUEUE = 'evac_info_queue'
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -39,6 +41,7 @@ def connect_to_rabbitmq():
             channel = connection.channel()
             channel.exchange_declare(exchange='notifications', exchange_type='fanout', durable=True)
             print("Connected to RabbitMQ")
+            channel.queue_declare(queue=COLLECTOR_QUEUE, durable=True)
             return connection, channel
         except (pika.exceptions.AMQPConnectionError, pika.exceptions.ChannelClosedByBroker):
             print("RabbitMQ not available, retrying in 5 seconds...")
@@ -88,6 +91,16 @@ def handle_get(client_socket):
         print(f"DEBUG: Handling GET request took {time.time()-before} seconds...")
         client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
         return
+    
+def send_state(channel, message):
+    channel.basic_publish(
+        exchange='',  # No exchange, direct to queue
+        routing_key=COLLECTOR_QUEUE,  # Directly to the collector queue
+        body=message,
+        properties=pika.BasicProperties(
+            delivery_mode=2,  # Make the message persistent
+        )
+    )
 
 
 def start_server(host='0.0.0.0', port=9092):
@@ -110,6 +123,13 @@ def start_server(host='0.0.0.0', port=9092):
             if (random.random() < CRASH_RATE):
                 try:
                     print("DEBUG: Chrashing...")
+                    data = {
+                        "name": NAME,
+                        "state": "Crash",
+                        "time_sent": datetime.now().isoformat()
+                    }
+                    send_state(channel, json.dumps(data))
+
                     exit(1)
                 except subprocess.CalledProcessError as e:
                     print(f"Failed to restart containers: {e}")
@@ -119,10 +139,24 @@ def start_server(host='0.0.0.0', port=9092):
                 DEGRADED_START_TIME = time.time()
                 DEGRADED_STATE = True
                 DEGRADED_DURATION = randrange(10, 30)
+
+                data = {
+                    "name": NAME,
+                    "state": "Degraded",
+                    "time_sent": datetime.now().isoformat()
+                }
+                send_state(channel, json.dumps(data))
                 print("DEBUG: Entering degraded state...")
 
             if DEGRADED_STATE and time.time() - DEGRADED_START_TIME >= DEGRADED_DURATION:
                 DEGRADED_STATE = False
+
+                data = {
+                    "name": NAME,
+                    "state": "Non-degraded",
+                    "time_sent": datetime.now().isoformat()
+                }
+                send_state(channel, json.dumps(data))
                 print("DEBUG: Exiting degraded state...")
             
                 
@@ -146,6 +180,13 @@ while True:
     try:
         # Attempt to connect to RabbitMQ
         connection, channel = connect_to_rabbitmq()
+
+        data = {
+            "name": NAME,
+            "state": "Starting",
+            "time_sent": datetime.now().isoformat()
+        }
+        send_state(channel, json.dumps(data))
 
         # Start listening for HTTP Requests
         start_server()
