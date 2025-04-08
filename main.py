@@ -69,8 +69,9 @@ def handle_post(client_socket, request):
             client_socket.sendall(response.encode('utf-8'))
             # Publish the message
             print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
-            #channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
-            #    properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+            channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
+                properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+            
     except Exception as e:
         print(e)
 
@@ -92,32 +93,30 @@ def start_server(host='0.0.0.0', port=9092):
     with ThreadPoolExecutor(max_workers=10) as executor:
         while True:
             client_socket, client_address = server_socket.accept()
-            
-            with client_socket:
-                request = client_socket.recv(1024).decode('utf-8')
+            request = client_socket.recv(1024).decode('utf-8')
 
-                if not request: # Hearth beat
-                    continue
+            if not request: # Hearth beat
+                continue
 
-                # CRASH
-                if (random.random() < CRASH_RATE):
-                    try:
-                        print("DEBUG: Chrashing...")
-                        exit(1)
-                    except subprocess.CalledProcessError as e:
-                        print(f"Failed to restart containers: {e}")
-                    
-                # DEGRADATION
-                if (random.random() < DEGRADATION_RATE):
-                    print("DEBUG: Entering degraded state...")
-                    time.sleep(DEGRADATION_TIME)
-                    print("DEBUG: Exiting degraded state...")
+            # CRASH
+            if (random.random() < CRASH_RATE):
+                try:
+                    print("DEBUG: Chrashing...")
+                    exit(1)
+                except subprocess.CalledProcessError as e:
+                    print(f"Failed to restart containers: {e}")
+                
+            # DEGRADATION
+            if (random.random() < DEGRADATION_RATE):
+                print("DEBUG: Entering degraded state...")
+                time.sleep(DEGRADATION_TIME)
+                print("DEBUG: Exiting degraded state...")
 
-                method = request.splitlines()[0].split()[0]
-                if method == "GET":
-                    executor.submit(handle_get, client_socket)
-                else:
-                    executor.submit(handle_post, client_socket, request)
+            method = request.splitlines()[0].split()[0]
+            if method == "GET":
+                executor.submit(handle_get, client_socket)
+            else:
+                executor.submit(handle_post, client_socket, request)
 
                     
             
