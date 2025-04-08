@@ -69,8 +69,8 @@ def handle_post(client_socket, request):
             client_socket.sendall(response.encode('utf-8'))
             # Publish the message
             print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
-            channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
-                properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+            #channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
+            #    properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
     except Exception as e:
         print(e)
 
