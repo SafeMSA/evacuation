@@ -22,7 +22,6 @@ DEGRADED_STATE = False
 DEGRADED_START_TIME = None
 DEGRADED_DURATION = None
 
-
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
     credentials = pika.PlainCredentials('myuser', 'mypassword')
@@ -135,12 +134,13 @@ def start_server(host='0.0.0.0', port=9092):
                 executor.submit(handle_post, client_socket, request)
 
                     
-            
+
 
 print("Starting...")
 subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
 time.sleep(RESTART_TIME)
-                
+random.seed(abs(hash(socket.gethostname()))) # Make sure the nodes dont have the same seed
+
 while True:
     
     try:
