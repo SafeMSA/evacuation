@@ -5,6 +5,7 @@ import json
 import os
 import sys
 import random
+from random import randrange
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 
@@ -16,8 +17,10 @@ NAME = os.environ.get('NAME')
 DEGRADATION_RATE = float(os.environ.get('DEGRADATION_RATE', '0'))
 CRASH_RATE = float(os.environ.get('CRASH_RATE', '0'))
 RESTART_TIME = 10
-DEGRADATION_TIME = 60
 GET_TIME = 2
+DEGRADED_STATE = False
+DEGRADED_START_TIME = None
+DEGRADED_DURATION = None
 
 
 def connect_to_rabbitmq():
@@ -76,9 +79,14 @@ def handle_post(client_socket, request):
         print(e)
 
 def handle_get(client_socket):
+    global DEGRADED_STATE, GET_TIME
     with client_socket:
-        print(f"DEBUG: Handling GET request for {GET_TIME} seconds...")
-        time.sleep(GET_TIME)
+        before = time.time()
+        if DEGRADED_STATE:
+            time.sleep(GET_TIME)
+        else:
+            time.sleep(0.1)
+        print(f"DEBUG: Handling GET request took {time.time()-before} seconds...")
         client_socket.sendall("HTTP/1.1 200 OK\r\n".encode('utf-8'))
         return
 
@@ -91,6 +99,7 @@ def start_server(host='0.0.0.0', port=9092):
     print(f"Listening on {host}:{port}...")
 
     with ThreadPoolExecutor(max_workers=10) as executor:
+        global DEGRADED_STATE, DEGRADATION_RATE
         while True:
             client_socket, client_address = server_socket.accept()
             request = client_socket.recv(1024).decode('utf-8')
@@ -107,10 +116,17 @@ def start_server(host='0.0.0.0', port=9092):
                     print(f"Failed to restart containers: {e}")
                 
             # DEGRADATION
-            if (random.random() < DEGRADATION_RATE):
+            if (random.random() < DEGRADATION_RATE and not DEGRADED_STATE):
+                DEGRADED_START_TIME = time.time()
+                DEGRADED_STATE = True
+                DEGRADED_DURATION = randrange(10, 30)
                 print("DEBUG: Entering degraded state...")
-                time.sleep(DEGRADATION_TIME)
+
+            if DEGRADED_STATE and time.time() - DEGRADED_START_TIME >= DEGRADED_DURATION:
+                DEGRADED_STATE = False
                 print("DEBUG: Exiting degraded state...")
+            
+                
 
             method = request.splitlines()[0].split()[0]
             if method == "GET":
