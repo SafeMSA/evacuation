@@ -10,6 +10,7 @@ import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import numpy as np
+import hashlib
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
@@ -25,7 +26,7 @@ DEGRADED_START_TIME = None
 DEGRADED_DURATION = None
 COLLECTOR_QUEUE = 'evac_info_queue'
 
-rng = np.random.default_rng()
+rng = np.random.default_rng(int(hashlib.sha256(socket.gethostname().encode()).hexdigest(), 16) % (2**32))
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -123,7 +124,9 @@ def start_server(host='0.0.0.0', port=9092):
                 continue
 
             # CRASH
-            if (rng.random() < CRASH_RATE):
+            rand_val = rng.random()
+            print(f"DEBUG: Random value for crash = {rand_val}")
+            if (rand_val < CRASH_RATE):
                 try:
                     print("DEBUG: Chrashing...")
                     data = {
