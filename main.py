@@ -9,6 +9,7 @@ from random import randrange
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+import numpy as np
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
@@ -23,6 +24,8 @@ DEGRADED_STATE = False
 DEGRADED_START_TIME = None
 DEGRADED_DURATION = None
 COLLECTOR_QUEUE = 'evac_info_queue'
+
+rng = np.random.default_rng()
 
 def connect_to_rabbitmq():
     #Attempts to connect to RabbitMQ, retrying until successful.
@@ -120,7 +123,7 @@ def start_server(host='0.0.0.0', port=9092):
                 continue
 
             # CRASH
-            if (random.random() < CRASH_RATE):
+            if (rng.random() < CRASH_RATE):
                 try:
                     print("DEBUG: Chrashing...")
                     data = {
@@ -135,7 +138,7 @@ def start_server(host='0.0.0.0', port=9092):
                     print(f"Failed to restart containers: {e}")
                 
             # DEGRADATION
-            if (random.random() < DEGRADATION_RATE and not DEGRADED_STATE):
+            if (rng.random() < DEGRADATION_RATE and not DEGRADED_STATE):
                 DEGRADED_START_TIME = time.time()
                 DEGRADED_STATE = True
                 DEGRADED_DURATION = randrange(10, 30)
@@ -173,7 +176,6 @@ def start_server(host='0.0.0.0', port=9092):
 print("Starting...")
 subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
 time.sleep(RESTART_TIME)
-random.seed(abs(hash(socket.gethostname()))) # Make sure the nodes dont have the same seed
 
 while True:
     
