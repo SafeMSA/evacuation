@@ -125,7 +125,6 @@ def start_server(host='0.0.0.0', port=9092):
 
             # CRASH
             rand_val = rng.random()
-            print(f"DEBUG: Random value for crash = {rand_val}")
             if (rand_val < CRASH_RATE):
                 try:
                     print("DEBUG: Chrashing...")
@@ -135,7 +134,7 @@ def start_server(host='0.0.0.0', port=9092):
                         "time_sent": datetime.now().isoformat()
                     }
                     send_state(channel, json.dumps(data))
-
+                    print(f"DEBUG: Random value for crash = {rand_val}")
                     exit(1)
                 except subprocess.CalledProcessError as e:
                     print(f"Failed to restart containers: {e}")
