@@ -132,7 +132,7 @@ def start_server(host='0.0.0.0', port=9092):
                     print("DEBUG: Chrashing...")
                     data = {
                         "name": NAME,
-                        "state": "Crash",
+                        "state": "Down",
                         "time_sent": datetime.now().isoformat()
                     }
                     send_state(channel, json.dumps(data))
@@ -160,7 +160,7 @@ def start_server(host='0.0.0.0', port=9092):
 
                 data = {
                     "name": NAME,
-                    "state": "Non-degraded",
+                    "state": "Normal",
                     "time_sent": datetime.now().isoformat()
                 }
                 send_state(channel, json.dumps(data))
@@ -191,7 +191,7 @@ while True:
 
         data = {
             "name": NAME,
-            "state": "Starting",
+            "state": "Up",
             "time_sent": datetime.now().isoformat()
         }
         send_state(channel, json.dumps(data))
