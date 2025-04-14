@@ -27,6 +27,8 @@ DEGRADED_START_TIME = None
 DEGRADED_DURATION = None
 COLLECTOR_QUEUE = 'evac_info_queue'
 
+channel_lock = Lock()
+
 salt = str(time.time())[-4:]
 seed = int(hashlib.sha256((socket.gethostname() + salt).encode()).hexdigest(), 16) % (2**32)
 rng = np.random.default_rng(seed)
