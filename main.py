@@ -84,7 +84,7 @@ def handle_post(client_socket, request):
                 properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
             
     except Exception as e:
-        print(e)
+        print(e.with_traceback())
 
 def handle_get(client_socket):
     global DEGRADED_STATE, GET_TIME
@@ -110,14 +110,14 @@ def send_state(channel, message):
 
 
 def start_server(host='0.0.0.0', port=9092):
-    
+    global DEGRADED_STATE, DEGRADATION_RATE, DEGRADED_START_TIME, DEGRADED_DURATION
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
     server_socket.listen(10)
     print(f"Listening on {host}:{port}...")
 
-    with ThreadPoolExecutor(max_workers=10) as executor:
+    with ThreadPoolExecutor(max_workers=20) as executor:
         global DEGRADED_STATE, DEGRADATION_RATE
         while True:
             client_socket, client_address = server_socket.accept()
@@ -140,7 +140,7 @@ def start_server(host='0.0.0.0', port=9092):
                     print(f"DEBUG: Random value for crash = {rand_val}")
                     exit(1)
                 except subprocess.CalledProcessError as e:
-                    print(f"Failed to restart containers: {e}")
+                    print(f"Failed to restart containers: {e.with_traceback()}")
                 
             # DEGRADATION
             if (rng.random() < DEGRADATION_RATE and not DEGRADED_STATE):
@@ -202,4 +202,4 @@ while True:
         connection.close()
 
     except Exception as e:
-        print(e)
+        print(e.with_traceback())
