@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 import numpy as np
 import hashlib
+from threading import Lock
 
 # RabbitMQ connection parameters
 RABBITMQ_HOST = 'localhost'  # Connect via Envoy sidecar
@@ -54,6 +55,7 @@ def connect_to_rabbitmq():
             time.sleep(5)
 
 def handle_post(client_socket, request):
+    global channel_lock
     try:
         with client_socket:
 
@@ -79,9 +81,10 @@ def handle_post(client_socket, request):
 
             client_socket.sendall(response.encode('utf-8'))
             # Publish the message
-            print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
-            channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
-                properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
+            with channel_lock:
+                print(f"DEBUG: Posting message with id {json_data.get('id')} to exchange...")
+                channel.basic_publish(exchange='notifications', routing_key='', body=json.dumps(json_data),
+                    properties=pika.BasicProperties(delivery_mode=2))  # Make message persistent
             
     except Exception as e:
         print(e)
