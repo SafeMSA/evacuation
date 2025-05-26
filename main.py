@@ -186,8 +186,10 @@ def start_server(host='0.0.0.0', port=9092):
 print("Starting with settings...")
 print(f"Chance of crashing:{CRASH_RATE*100}%")
 print(f"Chance of degrading:{DEGRADATION_RATE*100}%")
-subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
+
 time.sleep(RESTART_TIME)
+subprocess.run(["docker", "restart", f"{NAME[:-1]}-proxy{NAME[-1]}"], check=True)
+
 
 while True:
     
